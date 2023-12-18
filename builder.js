@@ -5,6 +5,8 @@ module.exports = class Builder {
     constructor() {
         this.specifiedKeys = new Set();
         this.url = 'https://fakestoreapi.com/products';
+        this.result = {};
+        this.prePromises = [];
     }
 
 
@@ -50,7 +52,7 @@ module.exports = class Builder {
 
     /**
      * pre-processes 
-     * These methods manipulates the request that is being sent.
+     * These methods manipulates the request that is being sent, or send other concurrent requests.
      */
     filter = (id) => {
         // could be any other filters that could be applied on the API
@@ -62,7 +64,7 @@ module.exports = class Builder {
     totalCount = () => {
         // could set the onlyGetCount in options, 
         // along with searchToken and tags if specific data is being looked for 
-        this.needTotalCount = true;
+        this.prePromises.push(this.#getTotalCount());
         return this;
     };
 
@@ -85,16 +87,15 @@ module.exports = class Builder {
 
 
     /**
-     * workflow
      * orchestraites the excutation of pre-processes, sending the request, executation of post-processes
      * and finally returning the results with specified fields.
      */
     sendRequest = async () => {
         try {
-            const allData = await (await fetch(this.url)).json();
-
             // any preprocess of fetched data could be done here
-
+            await Promise.all(this.prePromises);
+            
+            const allData = await (await fetch(this.url)).json();
 
             // preparing results with specified keys
             if (this.specifiedKeys.length == 0) {
@@ -126,12 +127,21 @@ module.exports = class Builder {
                     results[key] = allData[key];
                 }
             }
+            this.result.results = results;
 
-            return results;
+            return this.result;
         }
         catch (error) {
             console.log(error);
         }
     };
+
+    #getTotalCount = async () => {
+        const data = await (await fetch('https://fakestoreapi.com/products')).json();
+        this.result.count = data.length;
+        
+    };
+
+    
 
 };

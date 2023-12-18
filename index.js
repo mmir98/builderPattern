@@ -13,6 +13,7 @@ builder.id()
     .price()
     .rating()
     .filter(4)
+    .totalCount()
     .sendRequest()
     .then(result => {
         console.log(result);
