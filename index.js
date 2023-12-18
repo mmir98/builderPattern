@@ -12,8 +12,9 @@ builder.id()
     .desc()
     .price()
     .rating()
-    .filter(4)
+    // .filter(4)
     .totalCount()
+    .hasSuitableRating()
     .sendRequest()
     .then(result => {
         console.log(result);

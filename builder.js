@@ -7,6 +7,7 @@ module.exports = class Builder {
         this.url = 'https://fakestoreapi.com/products';
         this.result = {};
         this.prePromises = [];
+        this.postProcesses = [];
     }
 
 
@@ -76,7 +77,7 @@ module.exports = class Builder {
     hasSuitableRating = () => {
         // i.e. has doc with suitable status
         this.suitableRating = 4.0;
-        this.hasSuitableRating = true;
+        this.postProcesses.push(this.#hasSuitableRating);
         return this;
     };
 
@@ -96,6 +97,10 @@ module.exports = class Builder {
             await Promise.all(this.prePromises);
             
             const allData = await (await fetch(this.url)).json();
+
+            for (const func of this.postProcesses) {
+                func.call(this, allData);
+            }
 
             // preparing results with specified keys
             if (this.specifiedKeys.length == 0) {
@@ -142,6 +147,22 @@ module.exports = class Builder {
         
     };
 
-    
+    #hasSuitableRating = (data) => {
+        let hasSuitableRating = false;
+        if (Array.isArray(data)) {
+            const filteredData = data.find(value => {
+                return value.rating.rate >= this.suitableRating;
+            });
+
+            if (filteredData) {
+                hasSuitableRating = true;
+            }
+        }
+        else if (data?.rating?.rate >= this.suitableRating) {
+            hasSuitableRating = true;
+        }
+
+        this.result.hasSuitableRating = hasSuitableRating;
+    };
 
 };
